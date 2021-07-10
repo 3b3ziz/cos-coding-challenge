@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { injectable } from 'inversify';
 import 'reflect-metadata';
-import { ICarOnSaleClient } from '../interface/ICarOnSaleClient';
+import { ICarOnSaleClient, IAuthenticationResult, IRunningAuctions } from '../interface/ICarOnSaleClient';
 
 const BASE_URL = 'https://api-core-dev.caronsale.de/api';
 const CREATE_AUTH_TOKEN_ENDPOINT = (email: string) => `/v1/authentication/${email}`;
@@ -16,11 +16,11 @@ axios.defaults.baseURL = BASE_URL;
 export class CarOnSaleClient implements ICarOnSaleClient {
   public constructor() {}
 
-  private async createAuthToken(email: string, password: string): Promise<AxiosResponse<any>> {
+  private async createAuthToken(email: string, password: string): Promise<AxiosResponse<IAuthenticationResult>> {
     return axios.put(CREATE_AUTH_TOKEN_ENDPOINT(email), { password });
   }
 
-  public async getRunningAuctions(): Promise<AxiosResponse<any>> {
+  public async getRunningAuctions(): Promise<AxiosResponse<IRunningAuctions>> {
     try {
       const { data: authResult } = await this.createAuthToken(EMAIL, PASSWORD);
       const { token, userId } = authResult;
