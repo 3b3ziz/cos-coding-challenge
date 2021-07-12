@@ -1,3 +1,4 @@
+import nock from 'nock';
 import sinon from 'sinon';
 import axios from 'axios';
 import chai, { expect } from 'chai';
@@ -6,6 +7,10 @@ import chaiSinon from 'sinon-chai';
 import { ICarOnSaleClient } from '../interface/ICarOnSaleClient';
 import { CarOnSaleClient } from './CarOnSaleClient';
 
+// TODO: should be moved in a config file to run once since test files would increase later.
+const nockBack = nock.back;
+nockBack.setMode('record');
+nockBack.fixtures = __dirname + '/nockFixtures';
 
 chai.should();
 chai.use(chaiThings);
@@ -18,7 +23,7 @@ describe('CarOnSaleClient getRunningAuctions', function () {
   afterEach(() => {
     sinon.restore();
   });
-  it.only('should exit the process if the server is returning 500', async function () {
+  it('should exit the process if the server is returning 500', async function () {
     const processStub = sinon.stub(process, 'exit');
     sinon.stub(axios, 'put').rejects('CarOnSale server is not responding');
 
@@ -32,22 +37,30 @@ describe('CarOnSaleClient getRunningAuctions', function () {
   it('should successfully retrieve a list of all running auctions visible to the given buyer user.', async function () {
     const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient(console);
     carOnSaleClient.setAuthenticationParams(EMAIL, PASSWORD);
-    carOnSaleClient.setAuthenticationParams(EMAIL, PASSWORD);
-    const isAuthenticated = await carOnSaleClient.authenticate();
-    if (isAuthenticated) {
-      const { data: runningAuctions } = await carOnSaleClient.getRunningAuctions();
-      const { total: numberOfAuctions, items: runningAuctionItems } = runningAuctions;
+    nockBack('successfulAuthentication.json', async (nockDone) => {
+      const isAuthenticated = await carOnSaleClient.authenticate();
+      nockDone();
+      expect(isAuthenticated).to.equal(true);
 
-      expect(runningAuctions).to.be.an('object');
-      expect(runningAuctions).to.have.own.property('items');
-      expect(runningAuctions).to.have.own.property('page');
-      expect(runningAuctions).to.have.own.property('total');
-      expect(numberOfAuctions).to.be.a('number');
+      if (isAuthenticated) {
+        nockBack('successfulRunningAuctions.json', async (nockDone) => {
+          const { data: runningAuctions } = await carOnSaleClient.getRunningAuctions();
+          nockDone();
 
-      runningAuctionItems.should.all.have.property('currentHighestBidValue');
-      runningAuctionItems.should.all.have.property('minimumRequiredAsk');
-      runningAuctionItems.should.all.have.property('numBids');
-    }
+          const { total: numberOfAuctions, items: runningAuctionItems } = runningAuctions;
+
+          expect(runningAuctions).to.be.an('object');
+          expect(runningAuctions).to.have.own.property('items');
+          expect(runningAuctions).to.have.own.property('page');
+          expect(runningAuctions).to.have.own.property('total');
+          expect(numberOfAuctions).to.be.a('number');
+
+          runningAuctionItems.should.all.have.property('currentHighestBidValue');
+          runningAuctionItems.should.all.have.property('minimumRequiredAsk');
+          runningAuctionItems.should.all.have.property('numBids');
+        });
+      }
+    });
   });
 
   it('should exit the process if called while unauthenticated', async function () {
