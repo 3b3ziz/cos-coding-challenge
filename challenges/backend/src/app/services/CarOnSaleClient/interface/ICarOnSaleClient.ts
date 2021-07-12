@@ -22,7 +22,7 @@ export interface IRunningAuctions {
 }
 
 export interface ICarOnSaleClient {
-  getRunningAuctions(): Promise<AxiosResponse<IRunningAuctions>>;
-  setAuthenticationParams(email: string, password: string): void;
   authenticate(): Promise<boolean>;
+  getRunningAuctions(count?: boolean, filter?: string): Promise<AxiosResponse<IRunningAuctions>>;
+  setAuthenticationParams(email: string, password: string): void;
 }

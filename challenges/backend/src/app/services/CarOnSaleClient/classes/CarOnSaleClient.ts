@@ -52,7 +52,7 @@ export class CarOnSaleClient implements ICarOnSaleClient {
         this.logger.log(`${statusCode}: ${errorMessage}`);
         return false;
       } else {
-        // If unexpected error, service exits with error -1
+        // If unexpected error (e.g. the service is failing), service exits with error -1
         this.logger.log(error);
         process.exit(-1);
       }
@@ -61,12 +61,16 @@ export class CarOnSaleClient implements ICarOnSaleClient {
     return this.isAuthenticated;
   }
 
-  public getRunningAuctions(): Promise<AxiosResponse<IRunningAuctions>> {
+  public getRunningAuctions(count = false, filter = undefined): Promise<AxiosResponse<IRunningAuctions>> {
     return this.isAuthenticated
       ? axios.get(LIST_RUNNING_AUCTIONS_ENDPOINT(), {
           headers: {
             authtoken: this.token,
             userid: this.userId
+          },
+          params: {
+            count,
+            ...(filter ? { filter } : {})
           }
         })
       : process.exit(-1);
