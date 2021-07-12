@@ -1,39 +1,74 @@
+import { constants } from 'http2';
 import axios, { AxiosResponse } from 'axios';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import 'reflect-metadata';
+import { DependencyIdentifier } from '../../../DependencyIdentifiers';
+import { ILogger } from '../../Logger/interface/ILogger';
+import { BASE_URL, CREATE_AUTH_TOKEN_ENDPOINT, LIST_RUNNING_AUCTIONS_ENDPOINT } from '../config';
 import { ICarOnSaleClient, IAuthenticationResult, IRunningAuctions } from '../interface/ICarOnSaleClient';
-
-const BASE_URL = 'https://api-core-dev.caronsale.de/api';
-const CREATE_AUTH_TOKEN_ENDPOINT = (email: string) => `/v1/authentication/${email}`;
-const LIST_RUNNING_AUCTIONS_ENDPOINT = () => `/v2/auction/buyer/`;
-
-const EMAIL = 'salesman@random.com';
-const PASSWORD = '123test';
 
 axios.defaults.baseURL = BASE_URL;
 
+const isExpectedStatusCode = (code: number) =>
+  [constants.HTTP_STATUS_BAD_REQUEST, constants.HTTP_STATUS_UNAUTHORIZED].includes(code);
+
 @injectable()
 export class CarOnSaleClient implements ICarOnSaleClient {
-  public constructor() {}
+  isAuthenticated: boolean = false;
 
-  private async createAuthToken(email: string, password: string): Promise<AxiosResponse<IAuthenticationResult>> {
+  // Being authenticated is not required to allow public endpoints to be consumed through this client
+  email!: string;
+  password!: string;
+
+  token!: string;
+  userId!: string;
+
+  public constructor(@inject(DependencyIdentifier.LOGGER) private logger: ILogger) {}
+
+  public setAuthenticationParams(email: string, password: string) {
+    this.email = email;
+    this.password = password;
+  }
+
+  private setAuthToken(authenticated: boolean, token: string, userId: string) {
+    this.isAuthenticated = authenticated;
+    this.token = token;
+    this.userId = userId;
+  }
+
+  private createAuthToken(email: string, password: string): Promise<AxiosResponse<IAuthenticationResult>> {
     return axios.put(CREATE_AUTH_TOKEN_ENDPOINT(email), { password });
   }
 
-  public async getRunningAuctions(): Promise<AxiosResponse<IRunningAuctions>> {
+  public async authenticate() {
     try {
-      const { data: authResult } = await this.createAuthToken(EMAIL, PASSWORD);
-      const { token, userId } = authResult;
-
-      return axios.get(LIST_RUNNING_AUCTIONS_ENDPOINT(), {
-        headers: {
-          authtoken: token,
-          userid: userId
-        }
-      });
+      const { data: authResult } = await this.createAuthToken(this.email, this.password);
+      const { authenticated, token, userId } = authResult;
+      this.setAuthToken(authenticated, token, userId);
     } catch (error) {
-      console.error(error);
-      throw error;
+      const statusCode = error?.response?.status;
+      const errorMessage = error?.response?.data?.message;
+      if (isExpectedStatusCode(statusCode)) {
+        this.logger.log(`${statusCode}: ${errorMessage}`);
+        return false;
+      } else {
+        // If unexpected error, service exits with error -1
+        this.logger.log(error);
+        process.exit(-1);
+      }
     }
+
+    return this.isAuthenticated;
+  }
+
+  public getRunningAuctions(): Promise<AxiosResponse<IRunningAuctions>> {
+    return this.isAuthenticated
+      ? axios.get(LIST_RUNNING_AUCTIONS_ENDPOINT(), {
+          headers: {
+            authtoken: this.token,
+            userid: this.userId
+          }
+        })
+      : process.exit(-1);
   }
 }

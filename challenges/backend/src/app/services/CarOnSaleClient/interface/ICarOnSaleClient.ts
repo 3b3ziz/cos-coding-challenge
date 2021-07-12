@@ -4,6 +4,7 @@ import { AxiosResponse } from 'axios';
  * This service describes an interface to access auction data from the CarOnSale API.
  */
 export interface IAuthenticationResult {
+  authenticated: boolean;
   userId: string;
   token: string;
 }
@@ -22,4 +23,6 @@ export interface IRunningAuctions {
 
 export interface ICarOnSaleClient {
   getRunningAuctions(): Promise<AxiosResponse<IRunningAuctions>>;
+  setAuthenticationParams(email: string, password: string): void;
+  authenticate(): Promise<boolean>;
 }
