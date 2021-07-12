@@ -27,7 +27,7 @@ describe('CarOnSaleClient getRunningAuctions', function () {
     const processStub = sinon.stub(process, 'exit');
     sinon.stub(axios, 'put').rejects('CarOnSale server is not responding');
 
-    const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient(console);
+    const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient();
 
     carOnSaleClient.setAuthenticationParams(EMAIL, PASSWORD);
     await carOnSaleClient.authenticate();
@@ -35,7 +35,7 @@ describe('CarOnSaleClient getRunningAuctions', function () {
   });
 
   it('should successfully retrieve a list of all running auctions visible to the given buyer user.', async function () {
-    const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient(console);
+    const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient();
     carOnSaleClient.setAuthenticationParams(EMAIL, PASSWORD);
     nockBack('successfulAuthentication.json', async (nockDone) => {
       const isAuthenticated = await carOnSaleClient.authenticate();
@@ -63,10 +63,10 @@ describe('CarOnSaleClient getRunningAuctions', function () {
     });
   });
 
-  it('should exit the process if called while unauthenticated', async function () {
+  it.only('should exit the process if called while unauthenticated', async function () {
     const processStub = sinon.stub(process, 'exit');
 
-    const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient(console);
+    const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient();
     await carOnSaleClient.getRunningAuctions();
 
     expect(processStub).to.be.calledWith(-1);
