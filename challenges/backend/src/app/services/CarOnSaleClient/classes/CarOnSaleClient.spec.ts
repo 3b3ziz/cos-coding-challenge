@@ -22,6 +22,7 @@ const PASSWORD = '123test';
 describe('CarOnSaleClient getRunningAuctions', function () {
   afterEach(() => {
     sinon.restore();
+    nockBack.setMode('dryrun');
   });
   it('should exit the process if the server is returning 500', async function () {
     const processStub = sinon.stub(process, 'exit');
@@ -35,6 +36,8 @@ describe('CarOnSaleClient getRunningAuctions', function () {
   });
 
   it('should successfully retrieve a list of all running auctions visible to the given buyer user.', async function () {
+    nockBack.setMode('record');
+    nockBack.fixtures = __dirname + '/nockFixtures';
     const carOnSaleClient: ICarOnSaleClient = new CarOnSaleClient();
     carOnSaleClient.setAuthenticationParams(EMAIL, PASSWORD);
     nockBack('successfulAuthentication.json', async (nockDone) => {
