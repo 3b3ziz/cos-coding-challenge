@@ -34,6 +34,7 @@ axiosInstance.interceptors.response.use(
     }
     logger.error(error.message);
     process.exit(-1);
+    return Promise.reject(error);
   }
 );
 
