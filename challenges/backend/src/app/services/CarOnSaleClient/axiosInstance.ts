@@ -3,6 +3,8 @@ import { constants } from 'http2';
 // @ts-ignore
 import httpAdapter from 'axios/lib/adapters/http';
 import { BASE_URL } from './config';
+import { Logger } from '../Logger/classes/Logger';
+import { ILogger } from '../Logger/interface/ILogger';
 
 const isExpectedStatusCode = (code: number) =>
   [constants.HTTP_STATUS_BAD_REQUEST, constants.HTTP_STATUS_UNAUTHORIZED].includes(code);
@@ -18,6 +20,7 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   function (error: AxiosError) {
+    const logger: ILogger = new Logger();
     const statusCode = error?.response?.status;
     const errorMessage = error?.response?.data?.message;
     // Might use either https://www.npmjs.com/package/retry-axios or https://www.npmjs.com/package/axios-retry
@@ -25,10 +28,10 @@ axiosInstance.interceptors.response.use(
 
     // If unexpected error (e.g. the service is failing), service exits with error -1
     if (statusCode && isExpectedStatusCode(statusCode)) {
-      console.log(errorMessage || error.message);
+      logger.error(errorMessage || error.message);
       return Promise.reject(error);
     }
-    console.log(error.message);
+    logger.error(error.message);
     process.exit(-1);
   }
 );

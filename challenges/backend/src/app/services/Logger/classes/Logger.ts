@@ -9,4 +9,9 @@ export class Logger implements ILogger {
   public log(message: string): void {
     console.log(`[LOG]: ${message}`);
   }
+
+  public error(error: string | Error): void {
+    const message = typeof error === 'string' ? error.toString() : error?.message;
+    console.log(`[ERROR]: ${message}`);
+  }
 }
