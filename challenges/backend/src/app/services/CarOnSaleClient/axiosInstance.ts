@@ -12,7 +12,8 @@ const isExpectedStatusCode = (code: number) =>
 const axiosInstance = axios.create({
   adapter: httpAdapter,
   baseURL: BASE_URL,
-  headers: { Accept: 'application/json' }
+  headers: { Accept: 'application/json' },
+  timeout: 5000
 });
 
 axiosInstance.interceptors.response.use(
